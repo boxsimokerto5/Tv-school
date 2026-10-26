@@ -1,0 +1,198 @@
+{
+  "entities": {
+    "SchoolConfig": {
+      "title": "SchoolConfig",
+      "description": "Configuration profile, logo, video, announcements, and bell triggers for a school",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID"
+        },
+        "schoolName": {
+          "type": "string",
+          "description": "Name of the school"
+        },
+        "schoolMotto": {
+          "type": "string",
+          "description": "Motto or tagline of the school"
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL or preset key for school logo"
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "Direct MP4 or video documentation stream URL"
+        },
+        "videoTitle": {
+          "type": "string",
+          "description": "Title of the featured documentation video"
+        },
+        "runningText": {
+          "type": "string",
+          "description": "Running announcement ticker message"
+        },
+        "manualBellTrigger": {
+          "type": "integer",
+          "description": "Counter or timestamp for triggering real-time manual school bell"
+        },
+        "manualBellMessage": {
+          "type": "string",
+          "description": "Announcement title accompanying manual bell"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp via serverTimestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp via serverTimestamp"
+        }
+      },
+      "required": ["userId", "schoolName", "createdAt"]
+    },
+    "BellSchedule": {
+      "title": "BellSchedule",
+      "description": "Lesson period schedule and bell trigger times",
+      "type": "object",
+      "properties": {
+        "schoolId": {
+          "type": "string",
+          "description": "School owner UID"
+        },
+        "periodName": {
+          "type": "string",
+          "description": "Name of period e.g. Jam Ke-1, Istirahat"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Start time in HH:mm format"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "End time in HH:mm format"
+        },
+        "dayOfWeek": {
+          "type": "string",
+          "description": "Day of week or ALL"
+        },
+        "bellType": {
+          "type": "string",
+          "description": "Type of bell: MASUK, PERGANTIAN, ISTIRAHAT, PULANG"
+        },
+        "order": {
+          "type": "integer",
+          "description": "Sort order"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp via serverTimestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp via serverTimestamp"
+        }
+      },
+      "required": ["schoolId", "periodName", "startTime", "endTime", "bellType", "createdAt"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "description": "Student achievement item for photo slide showcase",
+      "type": "object",
+      "properties": {
+        "schoolId": {
+          "type": "string",
+          "description": "School owner UID"
+        },
+        "studentName": {
+          "type": "string",
+          "description": "Name of student or team"
+        },
+        "title": {
+          "type": "string",
+          "description": "Achievement title / competition won"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category e.g. Akademik, Olahraga, Seni"
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "Photo URL of achievement"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp via serverTimestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp via serverTimestamp"
+        }
+      },
+      "required": ["schoolId", "studentName", "title", "createdAt"]
+    },
+    "SchoolVideo": {
+      "title": "SchoolVideo",
+      "description": "Video documentation and profile item for TV display playlist",
+      "type": "object",
+      "properties": {
+        "schoolId": {
+          "type": "string",
+          "description": "School owner UID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Video title"
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "Direct MP4 or video stream URL"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional video description or subtitle"
+        },
+        "order": {
+          "type": "integer",
+          "description": "Sort order"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp via serverTimestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp via serverTimestamp"
+        }
+      },
+      "required": ["schoolId", "title", "videoUrl", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/schools/{schoolId}": {
+      "schema": "SchoolConfig",
+      "description": "Configuration, profile, running text, video, and bell trigger for the school owned by the user"
+    },
+    "/schools/{schoolId}/videos/{videoId}": {
+      "schema": "SchoolVideo",
+      "description": "Video documentation and playlist items for the school TV display"
+    },
+    "/schools/{schoolId}/schedules/{scheduleId}": {
+      "schema": "BellSchedule",
+      "description": "Daily bell and period schedules for the school"
+    },
+    "/schools/{schoolId}/achievements/{achievementId}": {
+      "schema": "Achievement",
+      "description": "Student achievements and photos for display carousel"
+    }
+  }
+}

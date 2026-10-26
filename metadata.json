@@ -1,0 +1,6 @@
+{
+  "name": "EduBell TV",
+  "description": "Aplikasi TV pengumuman sekolah dan bel sekolah otomatis pintar tersinkronisasi cloud",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

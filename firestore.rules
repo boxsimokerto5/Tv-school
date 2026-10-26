@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(schoolId) {
+      return isSignedIn() && request.auth.uid == schoolId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidSchoolConfig(data) {
+      return data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+             data.schoolName is string && data.schoolName.size() >= 2 && data.schoolName.size() <= 100 &&
+             (!('schoolMotto' in data) || (data.schoolMotto is string && data.schoolMotto.size() <= 200)) &&
+             (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 500)) &&
+             (!('videoUrl' in data) || (data.videoUrl is string && data.videoUrl.size() <= 500)) &&
+             (!('videoTitle' in data) || (data.videoTitle is string && data.videoTitle.size() <= 150)) &&
+             (!('runningText' in data) || (data.runningText is string && data.runningText.size() <= 1000)) &&
+             (!('manualBellTrigger' in data) || data.manualBellTrigger is int) &&
+             (!('manualBellMessage' in data) || (data.manualBellMessage is string && data.manualBellMessage.size() <= 100)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    function isValidBellSchedule(data, schoolId) {
+      return data.schoolId is string && data.schoolId == schoolId &&
+             data.periodName is string && data.periodName.size() >= 2 && data.periodName.size() <= 80 &&
+             data.startTime is string && data.startTime.size() >= 4 && data.startTime.size() <= 10 &&
+             data.endTime is string && data.endTime.size() >= 4 && data.endTime.size() <= 10 &&
+             (!('dayOfWeek' in data) || (data.dayOfWeek is string && data.dayOfWeek.size() <= 20)) &&
+             data.bellType is string && data.bellType in ['MASUK', 'PERGANTIAN', 'ISTIRAHAT', 'PULANG'] &&
+             (!('order' in data) || data.order is int) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    function isValidAchievement(data, schoolId) {
+      return data.schoolId is string && data.schoolId == schoolId &&
+             data.studentName is string && data.studentName.size() >= 2 && data.studentName.size() <= 100 &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 200 &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 50)) &&
+             (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    function isValidSchoolVideo(data, schoolId) {
+      return data.schoolId is string && data.schoolId == schoolId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 150 &&
+             data.videoUrl is string && data.videoUrl.size() >= 3 && data.videoUrl.size() <= 500 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 300)) &&
+             (!('order' in data) || data.order is int) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    match /schools/{schoolId} {
+      allow get: if isOwner(schoolId);
+      allow list: if isOwner(schoolId);
+
+      allow create: if isOwner(schoolId) &&
+                       isValidId(schoolId) &&
+                       incoming().userId == schoolId &&
+                       incoming().keys().hasAll(['userId', 'schoolName', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'schoolName', 'schoolMotto', 'logoUrl', 'videoUrl', 'videoTitle', 'runningText', 'manualBellTrigger', 'manualBellMessage', 'createdAt', 'updatedAt']) &&
+                       isValidSchoolConfig(incoming());
+
+      allow update: if isOwner(schoolId) &&
+                       isValidId(schoolId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidSchoolConfig(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['schoolName', 'schoolMotto', 'logoUrl', 'videoUrl', 'videoTitle', 'runningText', 'manualBellTrigger', 'manualBellMessage', 'updatedAt']);
+
+      allow delete: if isOwner(schoolId) && isValidId(schoolId);
+
+      match /schedules/{scheduleId} {
+        allow get, list: if isOwner(schoolId);
+
+        allow create: if isOwner(schoolId) &&
+                         isValidId(scheduleId) &&
+                         incoming().schoolId == schoolId &&
+                         incoming().keys().hasAll(['schoolId', 'periodName', 'startTime', 'endTime', 'bellType', 'createdAt']) &&
+                         incoming().keys().hasOnly(['schoolId', 'periodName', 'startTime', 'endTime', 'dayOfWeek', 'bellType', 'order', 'createdAt', 'updatedAt']) &&
+                         isValidBellSchedule(incoming(), schoolId);
+
+        allow update: if isOwner(schoolId) &&
+                         isValidId(scheduleId) &&
+                         incoming().schoolId == existing().schoolId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidBellSchedule(incoming(), schoolId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['periodName', 'startTime', 'endTime', 'dayOfWeek', 'bellType', 'order', 'updatedAt']);
+
+        allow delete: if isOwner(schoolId) && isValidId(scheduleId);
+      }
+
+      match /achievements/{achievementId} {
+        allow get, list: if isOwner(schoolId);
+
+        allow create: if isOwner(schoolId) &&
+                         isValidId(achievementId) &&
+                         incoming().schoolId == schoolId &&
+                         incoming().keys().hasAll(['schoolId', 'studentName', 'title', 'createdAt']) &&
+                         incoming().keys().hasOnly(['schoolId', 'studentName', 'title', 'category', 'photoUrl', 'createdAt', 'updatedAt']) &&
+                         isValidAchievement(incoming(), schoolId);
+
+        allow update: if isOwner(schoolId) &&
+                         isValidId(achievementId) &&
+                         incoming().schoolId == existing().schoolId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidAchievement(incoming(), schoolId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['studentName', 'title', 'category', 'photoUrl', 'updatedAt']);
+
+        allow delete: if isOwner(schoolId) && isValidId(achievementId);
+      }
+
+      match /videos/{videoId} {
+        allow get, list: if isOwner(schoolId);
+
+        allow create: if isOwner(schoolId) &&
+                         isValidId(videoId) &&
+                         incoming().schoolId == schoolId &&
+                         incoming().keys().hasAll(['schoolId', 'title', 'videoUrl', 'createdAt']) &&
+                         incoming().keys().hasOnly(['schoolId', 'title', 'videoUrl', 'description', 'order', 'createdAt', 'updatedAt']) &&
+                         isValidSchoolVideo(incoming(), schoolId);
+
+        allow update: if isOwner(schoolId) &&
+                         isValidId(videoId) &&
+                         incoming().schoolId == existing().schoolId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidSchoolVideo(incoming(), schoolId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'videoUrl', 'description', 'order', 'updatedAt']);
+
+        allow delete: if isOwner(schoolId) && isValidId(videoId);
+      }
+    }
+  }
+}
