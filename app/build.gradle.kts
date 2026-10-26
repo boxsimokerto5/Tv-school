@@ -1,5 +1,6 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 import java.time.Duration
+import java.util.Base64
 
 plugins {
   alias(libs.plugins.android.application)
@@ -28,7 +29,18 @@ android {
   signingConfigs {
     create("release") {
       val envKeystore = System.getenv("KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
-      storeFile = if (envKeystore != null) file(envKeystore) else file("${rootDir}/my-upload-key.jks")
+      val targetKeystore = if (envKeystore != null) file(envKeystore) else file("${rootDir}/my-upload-key.jks")
+      if (!targetKeystore.exists()) {
+        val b64File = file("${rootDir}/my-upload-key.jks.base64")
+        if (b64File.exists()) {
+          try {
+            val bytes = Base64.getDecoder().decode(b64File.readText().trim())
+            targetKeystore.writeBytes(bytes)
+          } catch (_: Exception) {
+          }
+        }
+      }
+      storeFile = targetKeystore
       storePassword = System.getenv("STORE_PASSWORD")?.takeIf { it.isNotBlank() && it != "true" } ?: "geccko2026tvsekolah"
       keyAlias = System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() && it != "true" } ?: "upload"
       keyPassword = System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() && it != "true" } ?: "geccko2026tvsekolah"

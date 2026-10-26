@@ -31,51 +31,50 @@ jobs:
         run: chmod +x gradlew
 
       - name: Prepare Signing Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           set -e
           echo "Setting up keystores..."
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Decoding keystore from GitHub Secret KEYSTORE_BASE64..."
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d ' \r\n\t' | base64 --decode > my-upload-key.jks
+            echo "$KEYSTORE_BASE64" | tr -d ' \r\n\t' | base64 --decode > my-upload-key.jks
           elif [ -f "my-upload-key.jks" ] && [ -s "my-upload-key.jks" ]; then
             echo "Using existing my-upload-key.jks from repository."
           elif [ -f "my-upload-key.jks.base64" ] && [ -s "my-upload-key.jks.base64" ]; then
             echo "Restoring my-upload-key.jks from my-upload-key.jks.base64..."
             tr -d ' \r\n\t' < my-upload-key.jks.base64 | base64 --decode > my-upload-key.jks
-          else
-            echo "Restoring permanent upload keystore from embedded backup..."
-            cat << 'EOF' | tr -d ' \r\n\t' | base64 --decode > my-upload-key.jks
-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
-EOF
           fi
 
-          # Ensure the keystore exists and is not empty
-          ls -lh my-upload-key.jks
-          test -s my-upload-key.jks
+          if [ ! -s "my-upload-key.jks" ]; then
+            echo "Error: my-upload-key.jks not found!"
+            exit 1
+          fi
 
-          # Create debug.keystore if not present so any debug build task succeeds
+          ls -lh my-upload-key.jks
+
           if [ ! -f "debug.keystore" ]; then
-            echo "Creating debug.keystore..."
-            keytool -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 10000 -keyalg RSA -keysize 2048
+            if [ -f "debug.keystore.base64" ] && [ -s "debug.keystore.base64" ]; then
+              tr -d ' \r\n\t' < debug.keystore.base64 | base64 --decode > debug.keystore
+            else
+              keytool -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 10000 -keyalg RSA -keysize 2048
+            fi
           fi
 
       - name: Build Release APK
         env:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Build Release AAB (Google Play Bundle)
         env:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          ./gradlew bundleRelease --no-daemon --stacktrace
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
 
       - name: Build Debug APK (Optional for Quick Testing)
-        run: |
-          ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
