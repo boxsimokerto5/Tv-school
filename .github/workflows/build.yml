@@ -1,0 +1,84 @@
+name: Build Android APK and AAB
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build APK and AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Prepare Signing Keystore
+        run: |
+          # Priority 1: GitHub Secret KEYSTORE_BASE64
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "Decoding keystore from GitHub Secret KEYSTORE_BASE64..."
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > my-upload-key.jks
+          # Priority 2: my-upload-key.jks file committed in repo
+          elif [ -f "my-upload-key.jks" ]; then
+            echo "Using my-upload-key.jks found in repository root."
+          # Priority 3: my-upload-key.jks.base64 backup committed in repo
+          elif [ -f "my-upload-key.jks.base64" ]; then
+            echo "Restoring my-upload-key.jks from my-upload-key.jks.base64..."
+            base64 --decode my-upload-key.jks.base64 > my-upload-key.jks
+          else
+            echo "ERROR: Signing keystore file not found!"
+            exit 1
+          fi
+
+      - name: Build Release APK & AAB
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'geccko2026tvsekolah' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'geccko2026tvsekolah' }}
+        run: |
+          ./gradlew assembleRelease bundleRelease --stacktrace
+
+      - name: Build Debug APK (Optional for Quick Testing)
+        run: |
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Release AAB (Google Play Bundle)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 14

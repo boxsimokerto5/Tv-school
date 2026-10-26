@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,16 +24,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Videocam
+import com.example.ui.theme.SignageThemePreset
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -108,7 +112,7 @@ fun AdminPhoneScreen(
     val statusMsg by viewModel.statusMessage.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Profil", "Video TV", "Pengumuman", "Jadwal Bel", "Prestasi Siswa")
+    val tabTitles = listOf("Profil", "Tema TV", "Video TV", "Pengumuman", "Jadwal Bel", "Prestasi Siswa")
 
     // Modals
     var showManualBellDialog by remember { mutableStateOf(false) }
@@ -190,7 +194,7 @@ fun AdminPhoneScreen(
             )
         },
         floatingActionButton = {
-            if (selectedTab == 1) {
+            if (selectedTab == 2) {
                 FloatingActionButton(
                     onClick = { showAddVideoDialog = true },
                     containerColor = Color(0xFF2563EB),
@@ -198,7 +202,7 @@ fun AdminPhoneScreen(
                 ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = "Tambah Video TV")
                 }
-            } else if (selectedTab == 3) {
+            } else if (selectedTab == 4) {
                 FloatingActionButton(
                     onClick = { showAddScheduleDialog = true },
                     containerColor = Color(0xFF2563EB),
@@ -206,7 +210,7 @@ fun AdminPhoneScreen(
                 ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = "Tambah Jadwal")
                 }
-            } else if (selectedTab == 4) {
+            } else if (selectedTab == 5) {
                 FloatingActionButton(
                     onClick = { showAddAchievementDialog = true },
                     containerColor = Color(0xFFD97706),
@@ -253,9 +257,15 @@ fun AdminPhoneScreen(
                     0 -> SchoolProfileTab(
                         schoolConfig = schoolConfig,
                         viewModel = viewModel,
-                        onGoToVideosTab = { selectedTab = 1 }
+                        onGoToVideosTab = { selectedTab = 2 },
+                        onGoToThemesTab = { selectedTab = 1 }
                     )
-                    1 -> TvVideosTab(
+                    1 -> SignageThemesTab(
+                        currentThemeKey = schoolConfig?.themeKey ?: "ROYAL_ACADEMIC",
+                        onSelectTheme = { key -> viewModel.selectTheme(key) },
+                        onPreviewTv = onOpenTvSignage
+                    )
+                    2 -> TvVideosTab(
                         videos = videos,
                         activeIndex = currentVideoIndex,
                         onSelectVideo = { viewModel.selectVideo(it) },
@@ -265,13 +275,13 @@ fun AdminPhoneScreen(
                         onEditVideo = { editingVideo = it },
                         onDeleteVideo = { viewModel.deleteVideo(it.id) }
                     )
-                    2 -> RunningTextTab(schoolConfig = schoolConfig, viewModel = viewModel)
-                    3 -> BellSchedulesTab(
+                    3 -> RunningTextTab(schoolConfig = schoolConfig, viewModel = viewModel)
+                    4 -> BellSchedulesTab(
                         schedules = schedules,
                         onEdit = { editingSchedule = it },
                         onDelete = { viewModel.deleteSchedule(it.id) }
                     )
-                    4 -> AchievementsTab(
+                    5 -> AchievementsTab(
                         achievements = achievements,
                         onDelete = { viewModel.deleteAchievement(it.id) }
                     )
@@ -412,7 +422,8 @@ private fun ManualBellActionBanner(onTriggerClick: () -> Unit) {
 private fun SchoolProfileTab(
     schoolConfig: SchoolConfig?,
     viewModel: SchoolViewModel,
-    onGoToVideosTab: () -> Unit = {}
+    onGoToVideosTab: () -> Unit = {},
+    onGoToThemesTab: () -> Unit = {}
 ) {
     var schoolName by remember(schoolConfig) { mutableStateOf(schoolConfig?.schoolName ?: "SMA Unggulan Nusantara") }
     var schoolMotto by remember(schoolConfig) { mutableStateOf(schoolConfig?.schoolMotto ?: "") }
@@ -427,6 +438,57 @@ private fun SchoolProfileTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Quick Theme Banner
+        item {
+            val activePreset = remember(schoolConfig?.themeKey) {
+                SignageThemePreset.fromKey(schoolConfig?.themeKey)
+            }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onGoToThemesTab() },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Text(text = activePreset.badgeEmoji, fontSize = 28.sp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Tema TV: ${activePreset.displayName}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = activePreset.tagline,
+                                fontSize = 12.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = onGoToThemesTab,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFEFF6FF),
+                            contentColor = Color(0xFF2563EB)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Ganti Tema", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -1648,5 +1710,307 @@ private fun VideoFormDialog(
             }
         }
     )
+}
+
+@Composable
+private fun SignageThemesTab(
+    currentThemeKey: String,
+    onSelectTheme: (String) -> Unit,
+    onPreviewTv: () -> Unit
+) {
+    val activePreset = remember(currentThemeKey) {
+        SignageThemePreset.fromKey(currentThemeKey)
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // 1. Info / Active Theme Banner
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                border = BorderStroke(1.5.dp, Color(0xFFE2E8F0))
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFEFF6FF)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Palette,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Tema Tampilan TV Signage",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF0F172A)
+                                )
+                                Text(
+                                    text = "Sinkronisasi Real-Time Otomatis ke TV",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF059669), fontWeight = FontWeight.SemiBold)
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = onPreviewTv,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1E293B),
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Tv, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Cek TV", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Pilih tema warna dan gaya kartu yang paling sesuai untuk sekolah Anda. Klik tombol terapkan di bawah untuk langsung mengubah tema layar TV seketika.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF64748B), lineHeight = 18.sp)
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Active theme indicator strip
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFF1F5F9))
+                            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = activePreset.badgeEmoji, fontSize = 20.sp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Tema Aktif: ${activePreset.displayName}",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Text(
+                                        text = activePreset.tagline,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(Color(0xFF047857))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "ONLINE DI TV",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Section Title
+        item {
+            Text(
+                text = "PILIHAN TEMA TERSEDIA (5 TEMA)",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF64748B),
+                    letterSpacing = 1.sp
+                ),
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
+        }
+
+        // 3. List of All 5 Themes
+        items(SignageThemePreset.entries) { preset ->
+            val isCurrent = preset.key.equals(currentThemeKey, ignoreCase = true)
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelectTheme(preset.key) },
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isCurrent) Color(0xFFF0FDF4) else Color.White
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (isCurrent) 4.dp else 2.dp),
+                border = BorderStroke(
+                    if (isCurrent) 2.dp else 1.dp,
+                    if (isCurrent) Color(0xFF10B981) else Color(0xFFE2E8F0)
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // Header Row: Emoji, Title, Tagline, and Status
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = preset.badgeEmoji, fontSize = 28.sp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = preset.displayName,
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                    )
+                                    if (isCurrent) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(Color(0xFF059669))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "AKTIF",
+                                                color = Color.White,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = preset.tagline,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = if (isCurrent) Color(0xFF047857) else Color(0xFF64748B),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Description
+                    Text(
+                        text = preset.description,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = Color(0xFF475569),
+                            lineHeight = 18.sp
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Color Palette Swatches Preview
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFF8FAFC))
+                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Palet Warna:",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF64748B)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                preset.previewColors.forEach { col ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clip(CircleShape)
+                                            .background(col)
+                                            .border(1.dp, Color.Black.copy(alpha = 0.15f), CircleShape)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Apply Button
+                        if (isCurrent) {
+                            Button(
+                                onClick = {},
+                                enabled = false,
+                                colors = ButtonDefaults.buttonColors(
+                                    disabledContainerColor = Color(0xFFDCFCE7),
+                                    disabledContentColor = Color(0xFF15803D)
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Sedang Digunakan", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Button(
+                                onClick = { onSelectTheme(preset.key) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF2563EB),
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Terapkan Tema", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(30.dp))
+        }
+    }
 }
 

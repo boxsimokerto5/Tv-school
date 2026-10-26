@@ -17,6 +17,7 @@ data class SchoolConfig(
     val runningText: String = "",
     val manualBellTrigger: Long = 0L,
     val manualBellMessage: String = "",
+    val themeKey: String = "ROYAL_ACADEMIC",
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )

@@ -37,6 +37,7 @@ service cloud.firestore {
              (!('runningText' in data) || (data.runningText is string && data.runningText.size() <= 1000)) &&
              (!('manualBellTrigger' in data) || data.manualBellTrigger is int) &&
              (!('manualBellMessage' in data) || (data.manualBellMessage is string && data.manualBellMessage.size() <= 100)) &&
+             (!('themeKey' in data) || (data.themeKey is string && data.themeKey.size() <= 40)) &&
              data.createdAt is timestamp && data.createdAt <= request.time &&
              (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
     }
@@ -81,7 +82,7 @@ service cloud.firestore {
                        isValidId(schoolId) &&
                        incoming().userId == schoolId &&
                        incoming().keys().hasAll(['userId', 'schoolName', 'createdAt']) &&
-                       incoming().keys().hasOnly(['userId', 'schoolName', 'schoolMotto', 'logoUrl', 'videoUrl', 'videoTitle', 'runningText', 'manualBellTrigger', 'manualBellMessage', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'schoolName', 'schoolMotto', 'logoUrl', 'videoUrl', 'videoTitle', 'runningText', 'manualBellTrigger', 'manualBellMessage', 'themeKey', 'createdAt', 'updatedAt']) &&
                        isValidSchoolConfig(incoming());
 
       allow update: if isOwner(schoolId) &&
@@ -89,7 +90,7 @@ service cloud.firestore {
                        incoming().userId == existing().userId &&
                        incoming().createdAt == existing().createdAt &&
                        isValidSchoolConfig(incoming()) &&
-                       incoming().diff(existing()).affectedKeys().hasOnly(['schoolName', 'schoolMotto', 'logoUrl', 'videoUrl', 'videoTitle', 'runningText', 'manualBellTrigger', 'manualBellMessage', 'updatedAt']);
+                       incoming().diff(existing()).affectedKeys().hasOnly(['schoolName', 'schoolMotto', 'logoUrl', 'videoUrl', 'videoTitle', 'runningText', 'manualBellTrigger', 'manualBellMessage', 'themeKey', 'updatedAt']);
 
       allow delete: if isOwner(schoolId) && isValidId(schoolId);
 

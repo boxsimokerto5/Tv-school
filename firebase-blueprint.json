@@ -41,6 +41,10 @@
           "type": "string",
           "description": "Announcement title accompanying manual bell"
         },
+        "themeKey": {
+          "type": "string",
+          "description": "Visual theme identifier: ROYAL_ACADEMIC, ISLAMIC_EMERALD, CYBER_TECH, VIBRANT_FRIENDLY, OLED_MINIMALIST"
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

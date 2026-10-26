@@ -233,6 +233,7 @@ class SchoolViewModel(application: Application) : AndroidViewModel(application) 
         val running = prefs.getString("running_text", "Selamat datang di SMA Unggulan Nusantara • Ujian Tengah Semester dimulai Senin pekan depan • Tingkatkan kedisiplinan dan raih prestasi gemilang!") ?: "Selamat datang di SMA Unggulan Nusantara • Ujian Tengah Semester dimulai Senin pekan depan • Tingkatkan kedisiplinan dan raih prestasi gemilang!"
         val manualTrigger = prefs.getLong("manual_trigger", 0L)
         val manualMsg = prefs.getString("manual_msg", "") ?: ""
+        val theme = prefs.getString("theme_key", "ROYAL_ACADEMIC") ?: "ROYAL_ACADEMIC"
 
         return SchoolConfig(
             userId = "admin_school",
@@ -243,7 +244,8 @@ class SchoolViewModel(application: Application) : AndroidViewModel(application) 
             videoTitle = vTitle,
             runningText = running,
             manualBellTrigger = manualTrigger,
-            manualBellMessage = manualMsg
+            manualBellMessage = manualMsg,
+            themeKey = theme
         )
     }
 
@@ -257,6 +259,7 @@ class SchoolViewModel(application: Application) : AndroidViewModel(application) 
             .putString("running_text", config.runningText)
             .putLong("manual_trigger", config.manualBellTrigger)
             .putString("manual_msg", config.manualBellMessage)
+            .putString("theme_key", config.themeKey)
             .apply()
     }
 
@@ -492,6 +495,29 @@ class SchoolViewModel(application: Application) : AndroidViewModel(application) 
             } else {
                 _statusMessage.value = "Profil sekolah & TV berhasil diperbarui!"
                 onComplete(true)
+            }
+        }
+    }
+
+    fun selectTheme(themeKey: String, onComplete: ((Boolean) -> Unit)? = null) {
+        val current = _schoolConfig.value ?: loadSavedConfig()
+        val updated = current.copy(themeKey = themeKey)
+        _schoolConfig.value = updated
+        persistConfig(updated)
+
+        viewModelScope.launch {
+            if (Firebase.auth.currentUser != null) {
+                val result = repository.saveSchoolConfig(updated)
+                if (result.isSuccess) {
+                    _statusMessage.value = "Tema TV berhasil diubah & tersinkronkan ke layar TV!"
+                    onComplete?.invoke(true)
+                } else {
+                    _statusMessage.value = "Tema diubah lokal (Cloud: ${result.exceptionOrNull()?.message})"
+                    onComplete?.invoke(true)
+                }
+            } else {
+                _statusMessage.value = "Tema TV berhasil diubah!"
+                onComplete?.invoke(true)
             }
         }
     }

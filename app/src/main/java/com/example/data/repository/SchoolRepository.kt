@@ -80,6 +80,7 @@ class SchoolRepository(private val db: FirebaseFirestore) {
                 "runningText" to config.runningText,
                 "manualBellTrigger" to config.manualBellTrigger,
                 "manualBellMessage" to config.manualBellMessage,
+                "themeKey" to config.themeKey,
                 "updatedAt" to FieldValue.serverTimestamp()
             ).filterValues { it != null }
 
@@ -95,6 +96,7 @@ class SchoolRepository(private val db: FirebaseFirestore) {
                 "runningText" to config.runningText,
                 "manualBellTrigger" to config.manualBellTrigger,
                 "manualBellMessage" to config.manualBellMessage,
+                "themeKey" to config.themeKey,
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp()
             ).filterValues { it != null }

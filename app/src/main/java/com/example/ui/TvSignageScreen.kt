@@ -88,6 +88,7 @@ import com.example.data.model.Achievement
 import com.example.data.model.BellSchedule
 import com.example.data.model.SchoolConfig
 import com.example.data.model.SchoolVideo
+import com.example.ui.theme.SignageThemePreset
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -201,72 +202,80 @@ fun TvSignageContent(
     showBackButton: Boolean = false,
     onBackClick: () -> Unit = {}
 ) {
-    Surface(
+    val themePreset = remember(config.themeKey) {
+        SignageThemePreset.fromKey(config.themeKey)
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .testTag("tv_signage_screen"),
-        color = Color(0xFFF1F5F9) // Light theme background
+            .background(themePreset.backgroundBrush)
+            .testTag("tv_signage_screen")
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
 
-                // 1. TOP HEADER BAR
-                TvHeaderBar(
+            // 1. TOP HEADER BAR
+            TvHeaderBar(
+                config = config,
+                currentTime = currentTime,
+                currentDate = currentDate,
+                currentPeriod = currentPeriod,
+                showBackButton = showBackButton,
+                onBackClick = onBackClick,
+                onSettingsOrLoginClick = onSettingsOrLoginClick,
+                settingsButtonLabel = settingsButtonLabel,
+                preset = themePreset
+            )
+
+            // 2. MAIN SPLIT CONTENT AREA
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Left Pane: Video Documentation & Today's Schedule Timeline
+                TvLeftPane(
+                    modifier = Modifier.weight(1.1f),
                     config = config,
-                    currentTime = currentTime,
-                    currentDate = currentDate,
+                    videos = videos,
+                    currentVideoIndex = currentVideoIndex,
+                    onNextVideo = onNextVideo,
+                    onPrevVideo = onPrevVideo,
+                    schedules = schedules,
                     currentPeriod = currentPeriod,
-                    showBackButton = showBackButton,
-                    onBackClick = onBackClick,
-                    onSettingsOrLoginClick = onSettingsOrLoginClick,
-                    settingsButtonLabel = settingsButtonLabel
+                    preset = themePreset
                 )
 
-                // 2. MAIN SPLIT CONTENT AREA
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Left Pane: Video Documentation & Today's Schedule Timeline
-                    TvLeftPane(
-                        modifier = Modifier.weight(1.1f),
-                        config = config,
-                        videos = videos,
-                        currentVideoIndex = currentVideoIndex,
-                        onNextVideo = onNextVideo,
-                        onPrevVideo = onPrevVideo,
-                        schedules = schedules,
-                        currentPeriod = currentPeriod
-                    )
-
-                    // Right Pane: Student Achievements Slide Carousel
-                    TvRightPane(
-                        modifier = Modifier.weight(0.9f),
-                        achievements = achievements
-                    )
-                }
-
-                // 3. BOTTOM MARQUEE RUNNING TEXT TICKER
-                TvRunningTextTicker(runningText = config.runningText.ifBlank {
-                    "Selamat datang di Sistem Digital Signage Sekolah • Tetap semangat dan capai prestasi terbaik hari ini!"
-                })
+                // Right Pane: Student Achievements Slide Carousel
+                TvRightPane(
+                    modifier = Modifier.weight(0.9f),
+                    achievements = achievements,
+                    preset = themePreset
+                )
             }
 
-            // 4. FULLSCREEN OVERLAY MODAL FOR BELL ALERTS
-            AnimatedVisibility(
-                visible = activeBellAlert != null,
-                enter = fadeIn() + scaleIn(initialScale = 0.85f),
-                exit = fadeOut() + scaleOut(targetScale = 0.85f)
-            ) {
-                activeBellAlert?.let { alert ->
-                    TvBellAlertOverlay(
-                        alert = alert,
-                        onDismiss = onDismissAlert
-                    )
-                }
+            // 3. BOTTOM MARQUEE RUNNING TEXT TICKER
+            TvRunningTextTicker(
+                runningText = config.runningText.ifBlank {
+                    "Selamat datang di Sistem Digital Signage Sekolah • Tetap semangat dan capai prestasi terbaik hari ini!"
+                },
+                preset = themePreset
+            )
+        }
+
+        // 4. FULLSCREEN OVERLAY MODAL FOR BELL ALERTS
+        AnimatedVisibility(
+            visible = activeBellAlert != null,
+            enter = fadeIn() + scaleIn(initialScale = 0.85f),
+            exit = fadeOut() + scaleOut(targetScale = 0.85f)
+        ) {
+            activeBellAlert?.let { alert ->
+                TvBellAlertOverlay(
+                    alert = alert,
+                    onDismiss = onDismissAlert
+                )
             }
         }
     }
@@ -281,16 +290,17 @@ private fun TvHeaderBar(
     showBackButton: Boolean,
     onBackClick: () -> Unit,
     onSettingsOrLoginClick: () -> Unit,
-    settingsButtonLabel: String
+    settingsButtonLabel: String,
+    preset: SignageThemePreset
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 10.dp, start = 16.dp, end = 16.dp, bottom = 4.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        colors = CardDefaults.cardColors(containerColor = preset.headerCardColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        border = BorderStroke(1.5.dp, preset.headerBorderColor)
     ) {
         Row(
             modifier = Modifier
@@ -312,7 +322,7 @@ private fun TvHeaderBar(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Kembali",
-                            tint = Color(0xFF1D4ED8)
+                            tint = preset.primaryAccentColor
                         )
                     }
                     Spacer(modifier = Modifier.width(6.dp))
@@ -323,8 +333,8 @@ private fun TvHeaderBar(
                     modifier = Modifier
                         .size(54.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFEFF6FF))
-                        .border(2.dp, Color(0xFFD97706), CircleShape),
+                        .background(preset.surfaceColor)
+                        .border(2.dp, preset.secondaryAccentColor, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     if (config.logoUrl.isNotBlank()) {
@@ -352,7 +362,7 @@ private fun TvHeaderBar(
                             text = config.schoolName.ifBlank { "SMA Unggulan Nusantara" },
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF0F172A),
+                                color = preset.textPrimaryColor,
                                 letterSpacing = 0.5.sp
                             ),
                             maxLines = 1,
@@ -362,21 +372,21 @@ private fun TvHeaderBar(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFF047857))
+                                .background(preset.primaryAccentColor)
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "LIVE TV",
-                                color = Color.White,
+                                color = if (preset.isDark) Color(0xFF0F172A) else Color.White,
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Black
                             )
                         }
                     }
                     Text(
                         text = config.schoolMotto.ifBlank { "Berkarakter, Berprestasi, dan Berwawasan Global" },
                         style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color(0xFF64748B),
+                            color = preset.textSecondaryColor,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                         ),
                         maxLines = 1,
@@ -390,31 +400,28 @@ private fun TvHeaderBar(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(Color(0xFF1D4ED8), Color(0xFF2563EB))
-                            )
-                        )
+                        .background(preset.currentScheduleHighlightColor)
+                        .border(1.dp, preset.primaryAccentColor, RoundedCornerShape(12.dp))
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = Color(0xFFFDE68A),
+                            tint = preset.secondaryAccentColor,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Column {
                             Text(
                                 text = "SEDANG BERLANGSUNG",
-                                color = Color(0xFFDBEAFE),
+                                color = preset.textSecondaryColor,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "${currentPeriod.periodName} (${currentPeriod.startTime} - ${currentPeriod.endTime})",
-                                color = Color.White,
+                                color = preset.textPrimaryColor,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -429,7 +436,7 @@ private fun TvHeaderBar(
                 Text(
                     text = currentTime,
                     style = MaterialTheme.typography.headlineMedium.copy(
-                        color = Color(0xFF1D4ED8),
+                        color = preset.primaryAccentColor,
                         fontWeight = FontWeight.Black,
                         fontFamily = FontFamily.Monospace,
                         letterSpacing = 2.sp
@@ -438,7 +445,7 @@ private fun TvHeaderBar(
                 Text(
                     text = currentDate,
                     style = MaterialTheme.typography.bodySmall.copy(
-                        color = Color(0xFF475569),
+                        color = preset.textSecondaryColor,
                         fontWeight = FontWeight.Medium
                     )
                 )
@@ -446,12 +453,12 @@ private fun TvHeaderBar(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Settings / Login Button (Requested by user)
+            // Settings / Login Button
             Button(
                 onClick = onSettingsOrLoginClick,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1D4ED8),
-                    contentColor = Color.White
+                    containerColor = preset.primaryAccentColor,
+                    contentColor = if (preset.isDark) Color(0xFF0F172A) else Color.White
                 ),
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.testTag("settings_or_login_button")
@@ -481,7 +488,8 @@ private fun TvLeftPane(
     onNextVideo: () -> Unit = {},
     onPrevVideo: () -> Unit = {},
     schedules: List<BellSchedule>,
-    currentPeriod: BellSchedule?
+    currentPeriod: BellSchedule?,
+    preset: SignageThemePreset
 ) {
     val effectiveVideos = if (videos.isNotEmpty()) videos else listOf(
         SchoolVideo(
@@ -503,9 +511,9 @@ private fun TvLeftPane(
                 .fillMaxWidth()
                 .weight(1.1f),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+            colors = CardDefaults.cardColors(containerColor = preset.surfaceColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            border = BorderStroke(1.dp, preset.surfaceBorderColor)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Image(
@@ -668,15 +676,15 @@ private fun TvLeftPane(
             }
         }
 
-        // Today's Lesson Schedule Timeline (Light Theme)
+        // Today's Lesson Schedule Timeline
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(0.9f),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+            colors = CardDefaults.cardColors(containerColor = preset.surfaceColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            border = BorderStroke(1.dp, preset.surfaceBorderColor)
         ) {
             Column(
                 modifier = Modifier
@@ -692,7 +700,7 @@ private fun TvLeftPane(
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = Color(0xFF1D4ED8),
+                            tint = preset.primaryAccentColor,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -700,13 +708,13 @@ private fun TvLeftPane(
                             text = "Jadwal Pelajaran & Bel Hari Ini",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0F172A)
+                                color = preset.textPrimaryColor
                             )
                         )
                     }
                     Text(
                         text = "${schedules.size} Jam Terjadwal",
-                        color = Color(0xFF64748B),
+                        color = preset.textSecondaryColor,
                         fontSize = 11.sp
                     )
                 }
@@ -722,7 +730,7 @@ private fun TvLeftPane(
                     ) {
                         Text(
                             text = "Belum ada jadwal. Silakan atur jadwal dari HP.",
-                            color = Color(0xFF64748B),
+                            color = preset.textMutedColor,
                             fontSize = 12.sp
                         )
                     }
@@ -733,7 +741,7 @@ private fun TvLeftPane(
                     ) {
                         items(schedules) { sched ->
                             val isCurrent = currentPeriod?.id == sched.id
-                            ScheduleItemRow(schedule = sched, isCurrent = isCurrent)
+                            ScheduleItemRow(schedule = sched, isCurrent = isCurrent, preset = preset)
                         }
                     }
                 }
@@ -743,9 +751,9 @@ private fun TvLeftPane(
 }
 
 @Composable
-private fun ScheduleItemRow(schedule: BellSchedule, isCurrent: Boolean) {
-    val bgColor = if (isCurrent) Color(0xFFEFF6FF) else Color(0xFFF8FAFC)
-    val borderColor = if (isCurrent) Color(0xFF2563EB) else Color(0xFFE2E8F0)
+private fun ScheduleItemRow(schedule: BellSchedule, isCurrent: Boolean, preset: SignageThemePreset) {
+    val bgColor = if (isCurrent) preset.currentScheduleHighlightColor else preset.surfaceColor.copy(alpha = 0.7f)
+    val borderColor = if (isCurrent) preset.primaryAccentColor else preset.surfaceBorderColor
 
     Row(
         modifier = Modifier
@@ -766,7 +774,7 @@ private fun ScheduleItemRow(schedule: BellSchedule, isCurrent: Boolean) {
                             "MASUK" -> Color(0xFF059669)
                             "ISTIRAHAT" -> Color(0xFFD97706)
                             "PULANG" -> Color(0xFFDC2626)
-                            else -> Color(0xFF1D4ED8)
+                            else -> preset.primaryAccentColor
                         }
                     )
                     .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -781,7 +789,7 @@ private fun ScheduleItemRow(schedule: BellSchedule, isCurrent: Boolean) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = schedule.periodName,
-                color = if (isCurrent) Color(0xFF1D4ED8) else Color(0xFF1E293B),
+                color = if (isCurrent) preset.textPrimaryColor else preset.textSecondaryColor,
                 fontSize = 12.sp,
                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium
             )
@@ -789,7 +797,7 @@ private fun ScheduleItemRow(schedule: BellSchedule, isCurrent: Boolean) {
 
         Text(
             text = "${schedule.startTime} - ${schedule.endTime}",
-            color = if (isCurrent) Color(0xFF1D4ED8) else Color(0xFF64748B),
+            color = if (isCurrent) preset.secondaryAccentColor else preset.textMutedColor,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             fontFamily = FontFamily.Monospace
@@ -800,7 +808,8 @@ private fun ScheduleItemRow(schedule: BellSchedule, isCurrent: Boolean) {
 @Composable
 private fun TvRightPane(
     modifier: Modifier = Modifier,
-    achievements: List<Achievement>
+    achievements: List<Achievement>,
+    preset: SignageThemePreset
 ) {
     var currentIndex by remember { mutableIntStateOf(0) }
 
@@ -827,9 +836,9 @@ private fun TvRightPane(
     Card(
         modifier = modifier.fillMaxHeight(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = preset.surfaceColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        border = BorderStroke(1.dp, preset.surfaceBorderColor)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header: Prestasi Siswa
@@ -845,13 +854,13 @@ private fun TvRightPane(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFFEF3C7)),
+                            .background(preset.surfaceBorderColor),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.EmojiEvents,
                             contentDescription = null,
-                            tint = Color(0xFFD97706),
+                            tint = preset.secondaryAccentColor,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -859,7 +868,7 @@ private fun TvRightPane(
                     Text(
                         text = "Prestasi Siswa & Kebanggaan",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            color = Color(0xFF0F172A),
+                            color = preset.textPrimaryColor,
                             fontWeight = FontWeight.Bold
                         )
                     )
@@ -874,7 +883,7 @@ private fun TvRightPane(
                                     .size(if (idx == currentIndex % achievements.size) 8.dp else 6.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        if (idx == currentIndex % achievements.size) Color(0xFF1D4ED8) else Color(0xFFCBD5E1)
+                                        if (idx == currentIndex % achievements.size) preset.primaryAccentColor else preset.surfaceBorderColor
                                     )
                             )
                         }
@@ -889,7 +898,7 @@ private fun TvRightPane(
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFF1F5F9))
+                    .background(preset.headerCardColor)
             ) {
                 if (activeAchievement != null && activeAchievement.photoUrl.isNotBlank()) {
                     AsyncImage(
@@ -914,13 +923,13 @@ private fun TvRightPane(
                             .align(Alignment.TopEnd)
                             .padding(10.dp)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color.White.copy(alpha = 0.95f))
-                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
+                            .background(preset.headerCardColor.copy(alpha = 0.95f))
+                            .border(1.dp, preset.surfaceBorderColor, RoundedCornerShape(6.dp))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = ach.category.ifBlank { "Prestasi" },
-                            color = Color(0xFFD97706),
+                            color = preset.secondaryAccentColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -937,7 +946,7 @@ private fun TvRightPane(
                 Text(
                     text = activeAchievement?.title ?: "Juara 1 Lomba Siswa Nasional",
                     style = MaterialTheme.typography.titleMedium.copy(
-                        color = Color(0xFF0F172A),
+                        color = preset.textPrimaryColor,
                         fontWeight = FontWeight.Bold,
                         lineHeight = 22.sp
                     ),
@@ -949,14 +958,14 @@ private fun TvRightPane(
                     Icon(
                         imageVector = Icons.Default.School,
                         contentDescription = null,
-                        tint = Color(0xFF1D4ED8),
+                        tint = preset.secondaryAccentColor,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = activeAchievement?.studentName ?: "Siswa Berprestasi",
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color(0xFF2563EB),
+                            color = preset.primaryAccentColor,
                             fontWeight = FontWeight.SemiBold
                         )
                     )
@@ -967,14 +976,18 @@ private fun TvRightPane(
 }
 
 @Composable
-private fun TvRunningTextTicker(runningText: String) {
+private fun TvRunningTextTicker(
+    runningText: String,
+    preset: SignageThemePreset
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(44.dp)
             .padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1D4ED8))
+        colors = CardDefaults.cardColors(containerColor = preset.tickerBgColor),
+        border = BorderStroke(1.dp, preset.surfaceBorderColor)
     ) {
         Row(
             modifier = Modifier
@@ -986,7 +999,7 @@ private fun TvRunningTextTicker(runningText: String) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFFFBBF24))
+                    .background(preset.secondaryAccentColor)
                     .padding(horizontal = 6.dp, vertical = 3.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1036,7 +1049,7 @@ private fun TvRunningTextTicker(runningText: String) {
                 ) {
                     Text(
                         text = runningText,
-                        color = Color.White,
+                        color = preset.tickerTextColor,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         softWrap = false
